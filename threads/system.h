@@ -12,6 +12,7 @@
 #include "utility.h"
 #include "thread.h"
 #include "scheduler.h"
+#include "printhello.h"
 #include "interrupt.h"
 #include "stats.h"
 #include "timer.h"
