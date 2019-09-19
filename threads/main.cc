@@ -84,7 +84,7 @@ main(int argc, char **argv)
     int argCount;			// the number of arguments 
 					// for a particular command
 
-    printhello();    
+    printhello();
     DEBUG('t', "Entering main");
     (void) Initialize(argc, argv);
     
@@ -159,7 +159,7 @@ main(int argc, char **argv)
         }
 #endif // NETWORK
     }
-
+	
     currentThread->Finish();	// NOTE: if the procedure "main" 
 				// returns, then the program "nachos"
 				// will exit (as any other normal program

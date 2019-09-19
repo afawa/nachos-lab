@@ -39,6 +39,8 @@
 
 #include "copyright.h"
 #include "utility.h"
+#include <sys/types.h>
+#include <unistd.h>
 
 #ifdef USER_PROGRAM
 #include "machine.h"
@@ -58,6 +60,8 @@
 
 // Thread state
 enum ThreadStatus { JUST_CREATED, RUNNING, READY, BLOCKED };
+
+
 
 // external function, dummy routine whose sole job is to call Thread::Print
 extern void ThreadPrint(int arg);	 
@@ -79,6 +83,8 @@ class Thread {
     // THEY MUST be in this position for SWITCH to work.
     int* stackTop;			 // the current stack pointer
     void *machineState[MachineStateSize];  // all registers except for stackTop
+    int tid;
+    int uid;
 
   public:
     Thread(char* debugName);		// initialize a Thread 
@@ -101,6 +107,10 @@ class Thread {
     void setStatus(ThreadStatus st) { status = st; }
     char* getName() { return (name); }
     void Print() { printf("%s, ", name); }
+    int getTid(){return this->tid;}
+    int getUid(){return this->uid;}
+    static Thread* createThread(char* debugName);
+    static int checkTidNum();
 
   private:
     // some of the private data for this class is listed above

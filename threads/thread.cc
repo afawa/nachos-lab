@@ -37,6 +37,15 @@ Thread::Thread(char* threadName)
     name = threadName;
     stackTop = NULL;
     stack = NULL;
+    this->uid = getuid();
+    for(int i=0;i<128;++i){
+        if(tid_alloc[i]==false){
+            tid_alloc[i]=true;
+            tid_pointer[i]=this;
+            this->tid=i;
+            break;
+        }
+    }
     status = JUST_CREATED;
 #ifdef USER_PROGRAM
     space = NULL;
@@ -62,6 +71,8 @@ Thread::~Thread()
     ASSERT(this != currentThread);
     if (stack != NULL)
 	DeallocBoundedArray((char *) stack, StackSize * sizeof(int));
+    tid_alloc[this->tid]=false;
+    tid_pointer[this->tid]=NULL;
 }
 
 //----------------------------------------------------------------------
@@ -219,9 +230,11 @@ Thread::Sleep ()
     DEBUG('t', "Sleeping thread \"%s\"\n", getName());
 
     status = BLOCKED;
+    //printf("1\n");
     while ((nextThread = scheduler->FindNextToRun()) == NULL)
 	interrupt->Idle();	// no one to run, wait for an interrupt
-        
+
+    //printf("1 ");
     scheduler->Run(nextThread); // returns when we've been signalled
 }
 
@@ -236,6 +249,23 @@ Thread::Sleep ()
 static void ThreadFinish()    { currentThread->Finish(); }
 static void InterruptEnable() { interrupt->Enable(); }
 void ThreadPrint(int arg){ Thread *t = (Thread *)arg; t->Print(); }
+
+int Thread::checkTidNum(){
+    for(int i=0;i<128;++i){
+        if(tid_alloc[i]==false)
+            return 1;
+    }
+    return -1;
+}
+
+Thread* Thread::createThread(char* debugName){
+    int flag=Thread::checkTidNum();
+    if(flag==-1){
+        printf("Too many threads\n");
+    }
+    ASSERT(flag!=-1);
+    return new Thread(debugName);
+}
 
 //----------------------------------------------------------------------
 // Thread::StackAllocate

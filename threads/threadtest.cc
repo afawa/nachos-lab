@@ -47,12 +47,48 @@ ThreadTest1()
 {
     DEBUG('t', "Entering ThreadTest1");
 
-    Thread *t = new Thread("forked thread");
+    Thread* t = Thread::createThread("forked thread");
+    //Thread *t = new Thread("forked thread");
 
     t->Fork(SimpleThread, (void*)1);
     SimpleThread(0);
 }
 
+void ThreadTest2(){
+    DEBUG('t', "Entering ThreadTest2");
+    Thread* t = Thread::createThread("forked thread 1");
+    //Thread *t = new Thread("forked thread");
+
+    t->Fork(SimpleThread, (void*)1);
+    SimpleThread(0);
+    TS();
+}
+
+void ThreadTest3(){
+    DEBUG('t', "Entering ThreadTest3");
+    for(int i=1;i<=10;++i){
+        char *prefix="forked thread ";
+        char *name = (char*) malloc(strlen(prefix)+3);
+        sprintf(name,"%s%d",prefix,i);
+        Thread* t = Thread::createThread(name);
+        t->Fork(SimpleThread,(void*)i);
+    }
+    SimpleThread(0);
+    TS();
+}
+
+void ThreadTest4(){
+    DEBUG('t', "Entering ThreadTest4");
+    for(int i=1;i<=200;++i){
+        char *prefix="forked thread ";
+        char *name = (char*) malloc(strlen(prefix)+3);
+        sprintf(name,"%s%d",prefix,i);
+        Thread* t = Thread::createThread(name);
+        t->Fork(SimpleThread,(void*)i);
+    }
+    SimpleThread(0);
+    TS();
+}
 //----------------------------------------------------------------------
 // ThreadTest
 // 	Invoke a test routine.
@@ -65,6 +101,14 @@ ThreadTest()
     case 1:
 	ThreadTest1();
 	break;
+    case 2:
+    ThreadTest2();
+    break;
+    case 3:
+    ThreadTest3();
+    break;
+    case 4:
+    ThreadTest4();
     default:
 	printf("No test specified.\n");
 	break;

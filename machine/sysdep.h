@@ -61,6 +61,8 @@ extern "C" {
 int atoi(const char *str);
 double atof(const char *str);
 int abs(int i);
+void exit(int status);
+void *malloc(long unsigned int size);
 
 #include <stdio.h>		// for printf, fprintf
 #include <string.h>		// for DEBUG, etc.

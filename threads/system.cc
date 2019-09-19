@@ -19,6 +19,9 @@ Statistics *stats;			// performance metrics
 Timer *timer;				// the hardware timer device,
 					// for invoking context switches
 
+bool tid_alloc[128];
+Thread* tid_pointer[128];
+
 #ifdef FILESYS_NEEDED
 FileSystem  *fileSystem;
 #endif
@@ -136,12 +139,18 @@ Initialize(int argc, char **argv)
     if (randomYield)				// start the timer (if needed)
 	timer = new Timer(TimerInterruptHandler, 0, randomYield);
 
+    for(int i=0;i<128;++i){
+        tid_alloc[i]=false;
+        tid_pointer[i]=NULL;
+    }
+
     threadToBeDestroyed = NULL;
 
     // We didn't explicitly allocate the current thread we are running in.
     // But if it ever tries to give up the CPU, we better have a Thread
     // object to save its state. 
-    currentThread = new Thread("main");		
+    currentThread = Thread::createThread("main");
+    //currentThread = new Thread("main");		
     currentThread->setStatus(RUNNING);
 
     interrupt->Enable();
@@ -195,3 +204,12 @@ Cleanup()
     Exit(0);
 }
 
+void TS(){
+    printf("\n TS command \n");
+	for(int i=0;i<128;++i){
+		if(tid_alloc[i]){
+            printf("Thread Tid: %d, Uid: %d, Name: %s\n",
+                tid_pointer[i]->getTid(),tid_pointer[i]->getUid(),tid_pointer[i]->getName());
+        }
+	}
+}
