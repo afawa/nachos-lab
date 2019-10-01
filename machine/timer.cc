@@ -43,12 +43,12 @@ static void TimerHandler(int arg)
 
 Timer::Timer(VoidFunctionPtr timerHandler, int callArg, bool doRandom)
 {
-    randomize = doRandom;
+    randomize = FALSE;
     handler = timerHandler;
     arg = callArg; 
 
     // schedule the first interrupt from the timer device
-    interrupt->Schedule(TimerHandler, (int) this, TimeOfNextInterrupt(), 
+    interrupt->Schedule(TimerHandler, (int) this, TimerTicks_prior1+60, 
 		TimerInt); 
 }
 
@@ -62,7 +62,18 @@ void
 Timer::TimerExpired() 
 {
     // schedule the next timer device interrupt
-    interrupt->Schedule(TimerHandler, (int) this, TimeOfNextInterrupt(), 
+    //printf("%s\n",currentThread->getName());
+    int p = scheduler->findFirst();
+    int t=TimerTicks;
+    if(p==0){
+        t=TimerTicks_prior1;
+    }else if (p==1){
+        t=TimerTicks_prior2;
+    }else{
+        t=TimerTicks_prior3;
+    }
+    printf("p=%d,t=%d\n",p,t);
+    interrupt->Schedule(TimerHandler, (int) this, t, 
 		TimerInt);
 
     // invoke the Nachos interrupt handler for this device

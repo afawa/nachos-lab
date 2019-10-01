@@ -85,6 +85,7 @@ class Thread {
     void *machineState[MachineStateSize];  // all registers except for stackTop
     int tid;
     int uid;
+    int priority;
 
   public:
     Thread(char* debugName);		// initialize a Thread 
@@ -109,7 +110,10 @@ class Thread {
     void Print() { printf("%s, ", name); }
     int getTid(){return this->tid;}
     int getUid(){return this->uid;}
+    int getpriorty(){return this->priority;}
+    void setpriorty(int priority){this->priority=priority;}
     static Thread* createThread(char* debugName);
+    static Thread* createThread_priority(char* debugName,int priority);
     static int checkTidNum();
 
   private:

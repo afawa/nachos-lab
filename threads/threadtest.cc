@@ -36,6 +36,16 @@ SimpleThread(int which)
     }
 }
 
+void SimpleThread1(int which){
+    int num;
+    for(num=0;num<10;++num){
+        printf("*** thread %d looped %d times\n", which, num);
+        interrupt->SetLevel(IntOff);
+        interrupt->SetLevel(IntOn);
+        printf("*** thread %d looped %d times done\n",which,num);
+    }
+}
+
 //----------------------------------------------------------------------
 // ThreadTest1
 // 	Set up a ping-pong between two threads, by forking a thread 
@@ -89,6 +99,48 @@ void ThreadTest4(){
     SimpleThread(0);
     TS();
 }
+
+void ThreadTest5(){
+    DEBUG('t', "Entering ThreadTest5");
+    for(int i=1;i<=5;++i){
+        char *prefix="forked thread ";
+        char *name = (char*) malloc(strlen(prefix)+3);
+        sprintf(name,"%s%d",prefix,i);
+#ifdef PRIORITY 
+        Thread *t = Thread::createThread_priority(name,i%3);
+#else 
+        Thread* t = Thread::createThread(name);
+#endif
+        t->Fork(SimpleThread,(void*)i);
+    }
+    SimpleThread(0);
+}
+
+void ThreadTest6(){
+    DEBUG('t', "Entering ThreadTest6");
+
+    Thread* t = Thread::createThread_priority("forked thread",10);
+    //Thread *t = new Thread("forked thread");
+
+    t->Fork(SimpleThread1, (void*)1);
+    SimpleThread1(0);
+}
+
+void ThreadTest7(){
+    DEBUG('t', "Entering ThreadTest7");
+    for(int i=1;i<=5;++i){
+        char *prefix="forked thread ";
+        char *name = (char*) malloc(strlen(prefix)+3);
+        sprintf(name,"%s%d",prefix,i);
+#ifdef PRIORITY 
+        Thread *t = Thread::createThread_priority(name,i%3);
+#else 
+        Thread* t = Thread::createThread(name);
+#endif
+        t->Fork(SimpleThread1,(void*)i);
+    }
+    SimpleThread1(0);
+}
 //----------------------------------------------------------------------
 // ThreadTest
 // 	Invoke a test routine.
@@ -109,6 +161,16 @@ ThreadTest()
     break;
     case 4:
     ThreadTest4();
+    break;
+    case 5:
+    ThreadTest5();
+    break;
+    case 6:
+    ThreadTest6();
+    break;
+    case 7:
+    ThreadTest7();
+    break;
     default:
 	printf("No test specified.\n");
 	break;

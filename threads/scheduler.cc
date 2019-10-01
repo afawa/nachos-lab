@@ -56,7 +56,11 @@ Scheduler::ReadyToRun (Thread *thread)
     DEBUG('t', "Putting thread %s on ready list.\n", thread->getName());
 
     thread->setStatus(READY);
+#ifdef PRIORITY
+    readyList->SortedInsert((void *)thread,thread->getpriorty());
+#else 
     readyList->Append((void *)thread);
+#endif 
 }
 
 //----------------------------------------------------------------------
@@ -146,4 +150,11 @@ Scheduler::Print()
 {
     printf("Ready list contents:\n");
     readyList->Mapcar((VoidFunctionPtr) ThreadPrint);
+}
+
+int Scheduler::findFirst(){
+    if(readyList->IsEmpty())
+        return -1;
+    else
+        return readyList->getfirst()->key;
 }

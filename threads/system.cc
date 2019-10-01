@@ -149,7 +149,11 @@ Initialize(int argc, char **argv)
     // We didn't explicitly allocate the current thread we are running in.
     // But if it ever tries to give up the CPU, we better have a Thread
     // object to save its state. 
+#ifdef PRIORITY
+    currentThread = Thread::createThread_priority("main",0);
+#else 
     currentThread = Thread::createThread("main");
+#endif 
     //currentThread = new Thread("main");		
     currentThread->setStatus(RUNNING);
 

@@ -160,6 +160,7 @@ Interrupt::OneTick()
 	stats->totalTicks += UserTick;
 	stats->userTicks += UserTick;
     }
+    printf("== Tick %d ==\n",stats->totalTicks);
     DEBUG('i', "\n== Tick %d ==\n", stats->totalTicks);
 
 // check any pending interrupts are now ready to fire
@@ -170,7 +171,9 @@ Interrupt::OneTick()
 	;
     ChangeLevel(IntOff, IntOn);		// re-enable interrupts
     if (yieldOnReturn) {		// if the timer device handler asked 
+    //printf("%s\n",currentThread->getName());
 					// for a context switch, ok to do it now
+    currentThread->setpriorty(currentThread->getpriorty()+1);
 	yieldOnReturn = FALSE;
  	status = SystemMode;		// yield is a kernel routine
 	currentThread->Yield();

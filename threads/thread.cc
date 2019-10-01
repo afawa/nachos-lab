@@ -267,6 +267,17 @@ Thread* Thread::createThread(char* debugName){
     return new Thread(debugName);
 }
 
+Thread* Thread::createThread_priority(char * debugName,int priority){
+    int flag=Thread::checkTidNum();
+    if(flag==-1){
+        printf("Too many threads\n");
+    }
+    ASSERT(flag!=-1);
+    Thread* new_thread = new Thread(debugName);
+    new_thread->setpriorty(priority);
+    return new_thread;
+}
+
 //----------------------------------------------------------------------
 // Thread::StackAllocate
 //	Allocate and initialize an execution stack.  The stack is
