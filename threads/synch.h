@@ -79,6 +79,8 @@ class Lock {
 
   private:
     char* name;				// for debugging
+    Semaphore* lock;
+    Thread* t;
     // plus some other stuff you'll need to define
 };
 
@@ -131,6 +133,26 @@ class Condition {
 
   private:
     char* name;
+    List *queue;
     // plus some other stuff you'll need to define
 };
+
+
+class RWLock{
+  public:
+    RWLock(char* debugName);
+    ~RWLock();
+    char* getName(){return name;}
+    void Acquire_w();
+    void Release_w();
+    void Acquire_r();
+    void Release_r();
+  private:
+    char* name;
+    List* readers;
+    Thread* writer;
+    Lock* r_lock;
+    Lock* w_lock;
+};
+
 #endif // SYNCH_H

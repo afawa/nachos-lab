@@ -15,7 +15,14 @@
 
 // testnum is set in main.cc
 int testnum = 1;
-
+Lock* lock=new Lock("producer consumer lock");
+Condition* condition = new Condition("Condition");
+int count=0;
+const int Maxcount=5;
+Semaphore* use=new Semaphore("check use",1);
+Semaphore* full=new Semaphore("check full",0);
+Semaphore* empty=new Semaphore("check empty",Maxcount);
+RWLock* rw_lock=new RWLock("reader writer lock");
 //----------------------------------------------------------------------
 // SimpleThread
 // 	Loop 5 times, yielding the CPU to another ready thread 
@@ -46,6 +53,77 @@ void SimpleThread1(int which){
     }
 }
 
+void producer(int num){
+    for(int i=num;i>0;--i){
+        lock->Acquire();
+        while(count==Maxcount){
+            printf("too many goods. | %s.\n",currentThread->getName());
+            condition->Wait(lock);
+        }
+        printf("Now %d goods. | %s need to produce %d goods.\n",++count,currentThread->getName(),i-1);
+        if(count>=1){
+            condition->Signal(lock);
+        }
+        lock->Release();
+    }
+}
+
+void consumer(int num){
+    for(int i=num;i>0;--i){
+        lock->Acquire();
+        while(count==0){
+            printf("No goods. | %s.\n",currentThread->getName());
+            condition->Wait(lock);
+        }
+        printf("Now %d goods. | %s need to consume %d goods.\n",--count,currentThread->getName(),i-1);
+        if(count<=Maxcount-1){
+            condition->Signal(lock);
+        }
+        lock->Release();
+    }
+}
+
+void producer_sema(int num){
+    for(int i=num;i>0;--i){
+        if(count==Maxcount){
+            printf("too many goods. | %s.\n",currentThread->getName());
+        }
+        empty->P();
+        use->P();
+        printf("Now %d goods. | %s need to produce %d goods.\n",++count,currentThread->getName(),i-1);
+        use->V();
+        full->V();
+    }
+}
+void consumer_sema(int num){
+    for(int i=num;i>0;--i){
+        if(count==0){
+            printf("No goods. | %s\n",currentThread->getName());
+        }
+        full->P();
+        use->P();
+        printf("Now %d goods. | %s need to produce %d goods.\n",--count,currentThread->getName(),i-1);
+        use->V();
+        empty->V();
+    }
+}
+
+void writer(int num){
+    rw_lock->Acquire_w();
+    count=num;
+    printf("%s write %d\n",currentThread->getName(),count);
+    currentThread->Yield();
+    printf("%s done.\n",currentThread->getName());
+    rw_lock->Release_w();
+}
+
+void reader(int num){
+    rw_lock->Acquire_r();
+    printf("%s read %d\n",currentThread->getName(),count);
+    currentThread->Yield();
+    printf("%s done.\n",currentThread->getName());
+    rw_lock->Release_r();
+}
 //----------------------------------------------------------------------
 // ThreadTest1
 // 	Set up a ping-pong between two threads, by forking a thread 
@@ -141,6 +219,44 @@ void ThreadTest7(){
     }
     SimpleThread1(0);
 }
+
+void pro_con(){
+    DEBUG('t',"producer consumer problem.");
+    Thread* t1=new Thread("Producer");
+    Thread* t2=new Thread("Consumer 1");
+    Thread* t3=new Thread("Consumer 2");
+    t1->Fork(producer,11);
+    t2->Fork(consumer,3);
+    t3->Fork(consumer,8);
+
+}
+void pro_con_sema(){
+    DEBUG('t',"producer consumer problem (sema).");
+    Thread* t1=new Thread("Producer");
+    Thread* t2=new Thread("Consumer 1");
+    Thread* t3=new Thread("Consumer 2");
+    t1->Fork(producer_sema,11);
+    t2->Fork(consumer_sema,3);
+    t3->Fork(consumer_sema,8);
+}
+
+void w_r(){
+    DEBUG('t',"reader writer problem.");
+    for(int i=1;i<=3;++i){
+        char *prefix="writer ";
+        char *name = (char*) malloc(strlen(prefix)+3);
+        sprintf(name,"%s%d",prefix,i);
+        Thread* t = Thread::createThread(name);
+        t->Fork(writer,(void*)i);
+    }
+    for(int i=1;i<=3;++i){
+        char *prefix="reader ";
+        char *name = (char*) malloc(strlen(prefix)+3);
+        sprintf(name,"%s%d",prefix,i);
+        Thread* t = Thread::createThread(name);
+        t->Fork(reader,(void*)i);
+    }
+}
 //----------------------------------------------------------------------
 // ThreadTest
 // 	Invoke a test routine.
@@ -170,6 +286,15 @@ ThreadTest()
     break;
     case 7:
     ThreadTest7();
+    break;
+    case 8:
+    pro_con();
+    break;
+    case 9:
+    pro_con_sema();
+    break;
+    case 10:
+    w_r();
     break;
     default:
 	printf("No test specified.\n");

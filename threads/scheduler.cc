@@ -61,6 +61,10 @@ Scheduler::ReadyToRun (Thread *thread)
 #else 
     readyList->Append((void *)thread);
 #endif 
+    //ListElement* ptr=readyList->getfirst();
+    //for(;ptr!=NULL;ptr=ptr->next){
+    //    printf("ToRun: %s\n",((Thread*)(ptr->item))->getName());
+    //}
 }
 
 //----------------------------------------------------------------------
