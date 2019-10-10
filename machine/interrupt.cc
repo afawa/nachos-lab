@@ -160,7 +160,7 @@ Interrupt::OneTick()
 	stats->totalTicks += UserTick;
 	stats->userTicks += UserTick;
     }
-    printf("== Tick %d ==\n",stats->totalTicks);
+    //printf("== Tick %d ==\n",stats->totalTicks);
     DEBUG('i', "\n== Tick %d ==\n", stats->totalTicks);
 
 // check any pending interrupts are now ready to fire

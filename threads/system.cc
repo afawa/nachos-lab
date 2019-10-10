@@ -150,7 +150,7 @@ Initialize(int argc, char **argv)
     // But if it ever tries to give up the CPU, we better have a Thread
     // object to save its state. 
 #ifdef PRIORITY
-    currentThread = Thread::createThread_priority("main",0);
+    currentThread = Thread::createThread_priority("main",10);
 #else 
     currentThread = Thread::createThread("main");
 #endif 
