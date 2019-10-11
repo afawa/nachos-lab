@@ -132,7 +132,6 @@ Condition::~Condition() {
     delete queue;
 }
 void Condition::Wait(Lock* conditionLock) { 
-    //ASSERT(FALSE); 
     IntStatus oldLevel = interrupt->SetLevel(IntOff);
     ASSERT(conditionLock->isHeldByCurrentThread());
     conditionLock->Release();

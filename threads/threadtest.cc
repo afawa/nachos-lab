@@ -256,6 +256,9 @@ void w_r(){
         Thread* t = Thread::createThread(name);
         t->Fork(reader,(void*)i);
     }
+    int i=4;
+    Thread *t = Thread::createThread("writer 4");
+    t->Fork(writer,(void*)i);
 }
 //----------------------------------------------------------------------
 // ThreadTest
