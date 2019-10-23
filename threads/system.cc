@@ -157,7 +157,7 @@ Initialize(int argc, char **argv)
     //currentThread = new Thread("main");		
     currentThread->setStatus(RUNNING);
 
-    interrupt->Enable();
+    interrupt->Enable(); //10 ticks
     CallOnUserAbort(Cleanup);			// if user hits ctl-C
     
 #ifdef USER_PROGRAM

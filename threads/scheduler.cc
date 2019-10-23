@@ -123,6 +123,13 @@ Scheduler::Run (Thread *nextThread)
 
     SWITCH(oldThread, nextThread);
     
+    /*IntStatus oldLevel = interrupt->SetLevel(IntOff);
+    if(oldLevel == IntOn){
+        printf("On\n");
+    }else{
+        printf("Off\n");
+    }
+    (void) interrupt->SetLevel(oldLevel);*/
     DEBUG('t', "Now in thread \"%s\"\n", currentThread->getName());
 
     // If the old thread gave up the processor because it was finishing,

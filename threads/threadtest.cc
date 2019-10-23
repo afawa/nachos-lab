@@ -44,6 +44,7 @@ SimpleThread(int which)
 }
 
 void SimpleThread1(int which){
+    printf("%s here\n",currentThread->getName());
     int num;
     for(num=0;num<10;++num){
         printf("*** thread %d looped %d times\n", which, num);
@@ -96,6 +97,10 @@ void producer_sema(int num){
     }
 }
 void consumer_sema(int num){
+    if(interrupt->getLevel()==IntOn)
+        printf("On\n");
+    else
+        printf("Off\n");
     for(int i=num;i>0;--i){
         if(count==0){
             printf("No goods. | %s\n",currentThread->getName());
@@ -206,6 +211,7 @@ void ThreadTest6(){
 
 void ThreadTest7(){
     DEBUG('t', "Entering ThreadTest7");
+    printf("Test 7\n");
     for(int i=1;i<=5;++i){
         char *prefix="forked thread ";
         char *name = (char*) malloc(strlen(prefix)+3);
