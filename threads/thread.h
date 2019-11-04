@@ -107,6 +107,7 @@ class Thread {
 						// overflowed its stack
     void setStatus(ThreadStatus st) { status = st; }
     char* getName() { return (name); }
+    char* getVname() {return (vname);}
     void Print() { printf("%s, ", name); }
     int getTid(){return this->tid;}
     int getUid(){return this->uid;}
@@ -124,6 +125,7 @@ class Thread {
 					// (If NULL, don't deallocate stack)
     ThreadStatus status;		// ready, running or blocked
     char* name;
+    char* vname;
 
     void StackAllocate(VoidFunctionPtr func, void *arg);
     					// Allocate a stack for thread.

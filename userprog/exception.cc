@@ -55,8 +55,41 @@ ExceptionHandler(ExceptionType which)
 
     if ((which == SyscallException) && (type == SC_Halt)) {
 	DEBUG('a', "Shutdown, initiated by user program.\n");
+    //printf("hit_num: %d fail_num: %d rate:%lf\n",machine->TLBhit_num,machine->TLBfail_num,(double)machine->TLBhit_num/(machine->TLBfail_num+machine->TLBhit_num));
    	interrupt->Halt();
-    } else {
+    }else if((which == PageFaultException)){
+        int address = machine->ReadRegister(BadVAddrReg);
+        //printf("Bad addr: 0x%x\n",address);
+#ifdef USE_TLB 
+        machine->TLBswap(address);
+#else
+        //倒排页表
+        int vpn = (unsigned) address / PageSize;
+        int offset = (unsigned) address % PageSize;
+        int ppn = machine->SimpleHash(vpn);
+        printf("virtualAddr:0x%x vpn:%d ppn:%d\n",address,vpn,ppn);
+        OpenFile *openfile = fileSystem->Open(currentThread->getVname());
+        if(!machine->pageTable[ppn].valid){
+            memMa->allocate(vpn,currentThread,ppn);
+            openfile->ReadAt(&(machine->mainMemory[ppn*PageSize]),
+                    PageSize,vpn*PageSize);
+            machine->pageTable[ppn].virtualPage=vpn;
+        }else if(machine->pageTable[ppn].virtualPage!=vpn){
+            openfile->WriteAt(&(machine->mainMemory[ppn*PageSize]),
+                    PageSize,machine->pageTable[ppn].virtualPage*PageSize);
+            memMa->allocate(vpn,currentThread,ppn);
+            openfile->ReadAt(&(machine->mainMemory[ppn*PageSize]),
+                    PageSize,vpn*PageSize);
+        }
+        delete openfile;
+        machine->pageTable[ppn].virtualPage = vpn;
+        machine->pageTable[ppn].valid = true;
+        machine->pageTable[ppn].readOnly = false;
+        machine->pageTable[ppn].use=false;
+        machine->pageTable[ppn].dirty = false;
+#endif 
+    } 
+    else {
 	printf("Unexpected user mode exception %d %d\n", which, type);
 	ASSERT(FALSE);
     }

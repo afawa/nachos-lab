@@ -78,7 +78,7 @@ AddrSpace::AddrSpace(OpenFile *executable)
     numPages = divRoundUp(size, PageSize);
     size = numPages * PageSize;
 
-    ASSERT(numPages <= NumPhysPages);		// check we're not trying
+    //ASSERT(numPages <= NumPhysPages);		// check we're not trying
 						// to run anything too big --
 						// at least until we have
 						// virtual memory
@@ -90,7 +90,7 @@ AddrSpace::AddrSpace(OpenFile *executable)
     for (i = 0; i < numPages; i++) {
 	pageTable[i].virtualPage = i;	// for now, virtual page # = phys page #
 	pageTable[i].physicalPage = i;
-	pageTable[i].valid = TRUE;
+	pageTable[i].valid = FALSE;
 	pageTable[i].use = FALSE;
 	pageTable[i].dirty = FALSE;
 	pageTable[i].readOnly = FALSE;  // if the code segment was entirely on 
@@ -100,20 +100,92 @@ AddrSpace::AddrSpace(OpenFile *executable)
     
 // zero out the entire address space, to zero the unitialized data segment 
 // and the stack segment
-    bzero(machine->mainMemory, size);
+    //bzero(machine->mainMemory, size);
+    //
+#ifdef LAZY
+    fileSystem->Create(currentThread->getVname(),size);
+    OpenFile *openfile = fileSystem->Open(currentThread->getVname());
+    printf("use virtual memory\n");
+    if(openfile==NULL) ASSERT(false);
+    //写入虚拟内存
+    if(noffH.code.size>0){
+        int pos1 = noffH.code.inFileAddr;
+        int pos2 = noffH.code.virtualAddr;
+        char current_char;
+        for(int j=0;j<noffH.code.size;++j){
+            executable->ReadAt(&(current_char),1,pos1++);
+            openfile->WriteAt(&(current_char),1,pos2++);
+        }
+    }
+    if(noffH.initData.size>0){
+        int pos1 = noffH.initData.inFileAddr;
+        int pos2 = noffH.initData.virtualAddr;
+        char current_char;
+        for(int j=0;j<noffH.initData.size;++j){
+            executable->ReadAt(&(current_char),1,pos1++);
+            openfile->WriteAt(&(current_char),1,pos2++);
+        }
+    }
+    delete openfile;
+    return;
+#endif 
 
 // then, copy in the code and data segments into memory
     if (noffH.code.size > 0) {
         DEBUG('a', "Initializing code segment, at 0x%x, size %d\n", 
 			noffH.code.virtualAddr, noffH.code.size);
-        executable->ReadAt(&(machine->mainMemory[noffH.code.virtualAddr]),
-			noffH.code.size, noffH.code.inFileAddr);
+
+        int startVPN= (unsigned) noffH.code.virtualAddr / PageSize;
+        int startoffset = (unsigned) noffH.code.virtualAddr % PageSize;
+        int endVPN = (unsigned) (noffH.code.virtualAddr+noffH.code.size)/PageSize;
+        int endoffset = (unsigned) (noffH.code.virtualAddr+noffH.code.size)%PageSize;
+        //分页开内存
+        for(int i=startVPN;i<=endVPN;++i){
+            int NUM=memMa->findPage(i,currentThread);
+            if(NUM==-1){
+                NUM=memMa->findFreePage(currentThread);
+                memMa->allocate(i,currentThread,NUM);
+            }
+            int startAddr=NUM*PageSize,endAddr=(NUM+1)*PageSize;
+            int startVirtualAddr = i*PageSize;
+            if(i==startVPN){
+                startAddr=NUM*PageSize+startoffset;
+                startVirtualAddr = i*PageSize+startoffset;
+            }
+            if(i==endVPN)
+                endAddr=NUM*PageSize+endoffset;
+            int temp=startVirtualAddr-noffH.code.virtualAddr;
+            executable->ReadAt(&(machine->mainMemory[startAddr]),
+                    endAddr-startAddr,noffH.code.inFileAddr+(temp));
+        }
     }
     if (noffH.initData.size > 0) {
         DEBUG('a', "Initializing data segment, at 0x%x, size %d\n", 
-			noffH.initData.virtualAddr, noffH.initData.size);
-        executable->ReadAt(&(machine->mainMemory[noffH.initData.virtualAddr]),
-			noffH.initData.size, noffH.initData.inFileAddr);
+                noffH.initData.virtualAddr, noffH.initData.size);
+        int startVPN= (unsigned) noffH.initData.virtualAddr / PageSize;
+        int startoffset = (unsigned) noffH.initData.virtualAddr % PageSize;
+        int endVPN = (unsigned) (noffH.initData.virtualAddr+noffH.code.size)/PageSize;
+        int endoffset = (unsigned) (noffH.initData.virtualAddr+noffH.code.size)%PageSize;
+        //分页开内存
+        for(int i=startVPN;i<=endVPN;++i){
+            int NUM=memMa->findPage(i,currentThread);
+            if(NUM==-1){
+                NUM=memMa->findFreePage(currentThread);
+                memMa->allocate(i,currentThread,NUM);
+            }
+            int startAddr=NUM*PageSize,endAddr=(NUM+1)*PageSize;
+            int startVirtualAddr = i*PageSize;
+            if(i==startVPN){
+                startAddr=NUM*PageSize+startoffset;
+                startVirtualAddr = i*PageSize+startoffset;
+            }
+            if(i==endVPN)
+                endAddr=NUM*PageSize+endoffset;
+            int temp=startVirtualAddr-noffH.initData.virtualAddr;
+            executable->ReadAt(&(machine->mainMemory[startAddr]),
+                    endAddr-startAddr,noffH.initData.inFileAddr+(temp));
+        }
+
     }
 
 }
@@ -169,7 +241,10 @@ AddrSpace::InitRegisters()
 //----------------------------------------------------------------------
 
 void AddrSpace::SaveState() 
-{}
+{
+    //保存TLB
+    pageTable = machine->tlb;
+}
 
 //----------------------------------------------------------------------
 // AddrSpace::RestoreState
@@ -181,6 +256,12 @@ void AddrSpace::SaveState()
 
 void AddrSpace::RestoreState() 
 {
+    //恢复TLB
+#ifdef USE_TLB
+    machine->tlb = pageTable;
+#else 
     machine->pageTable = pageTable;
+#endif 
+   // machine->pageTable = pageTable;
     machine->pageTableSize = numPages;
 }

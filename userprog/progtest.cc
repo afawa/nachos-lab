@@ -14,6 +14,27 @@
 #include "addrspace.h"
 #include "synch.h"
 
+void ForkThread(int which){
+    OpenFile *executable = fileSystem->Open("./test/halt");
+    AddrSpace *space;
+    if (executable == NULL) {
+	printf("Unable to open file ./test/halt\n");
+	return;
+    }
+    space = new AddrSpace(executable);    
+    currentThread->space = space;
+
+    delete executable;			// close file
+
+    space->InitRegisters();		// set the initial register values
+    space->RestoreState();		// load page table register
+
+    machine->Run();			// jump to the user progam
+    ASSERT(FALSE);			// machine->Run never returns;
+					// the address space exits
+					// by doing the syscall "exit"
+}
+
 //----------------------------------------------------------------------
 // StartProcess
 // 	Run a user program.  Open the executable, load it into
@@ -26,6 +47,10 @@ StartProcess(char *filename)
     OpenFile *executable = fileSystem->Open(filename);
     AddrSpace *space;
 
+#ifdef MUL_THREAD
+    Thread* t = Thread::createThread("Thread1");
+    t->Fork(ForkThread,1);
+#endif
     if (executable == NULL) {
 	printf("Unable to open file %s\n", filename);
 	return;

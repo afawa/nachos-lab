@@ -41,6 +41,9 @@ Machine::Run()
 	interrupt->OneTick();
 	if (singleStep && (runUntilTime <= stats->totalTicks))
 	  Debugger();
+#ifdef MUL_THREAD
+    currentThread->Yield();
+#endif
     }
 }
 

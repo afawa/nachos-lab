@@ -209,23 +209,36 @@ Machine::Translate(int virtAddr, int* physAddr, int size, bool writing)
     offset = (unsigned) virtAddr % PageSize;
     
     if (tlb == NULL) {		// => page table => vpn is index into table
-	if (vpn >= pageTableSize) {
-	    DEBUG('a', "virtual page # %d too large for page table size %d!\n", 
-			virtAddr, pageTableSize);
-	    return AddressErrorException;
-	} else if (!pageTable[vpn].valid) {
-	    DEBUG('a', "virtual page # %d too large for page table size %d!\n", 
-			virtAddr, pageTableSize);
-	    return PageFaultException;
-	}
-	entry = &pageTable[vpn];
+    //if (vpn >= pageTableSize) {
+	//    DEBUG('a', "virtual page # %d too large for page table size %d!\n", 
+	//		virtAddr, pageTableSize);
+	//    return AddressErrorException;
+	//} else if (!pageTable[vpn].valid) {
+	//    DEBUG('a', "virtual page # %d too large for page table size %d!\n", 
+	//		virtAddr, pageTableSize);
+	//    return PageFaultException;
+	//}
+	//entry = &pageTable[vpn];
+    //倒排页表
+    //根据vpn通过hash索引ppn
+    int ppn = SimpleHash(vpn);
+    if(!pageTable[ppn].valid){
+        return PageFaultException;
+    }else if(pageTable[ppn].virtualPage!=vpn){
+        return PageFaultException;
+    }
+    entry = &pageTable[ppn];
+
     } else {
         for (entry = NULL, i = 0; i < TLBSize; i++)
     	    if (tlb[i].valid && (tlb[i].virtualPage == vpn)) {
 		entry = &tlb[i];			// FOUND!
+        tlbUpdate(i);
+        TLBhit_num+=1;
 		break;
 	    }
 	if (entry == NULL) {				// not found
+            TLBfail_num+=1;
     	    DEBUG('a', "*** no valid TLB entry found for this virtual page!\n");
     	    return PageFaultException;		// really, this is a TLB fault,
 						// the page may be in memory,
@@ -248,6 +261,7 @@ Machine::Translate(int virtAddr, int* physAddr, int size, bool writing)
     entry->use = TRUE;		// set the use, dirty bits
     if (writing)
 	entry->dirty = TRUE;
+    //printf("vAddr:0x%x physAddr:%x\n",virtAddr,pageFrame*PageSize+offset);
     *physAddr = pageFrame * PageSize + offset;
     ASSERT((*physAddr >= 0) && ((*physAddr + size) <= MemorySize));
     DEBUG('a', "phys addr = 0x%x\n", *physAddr);

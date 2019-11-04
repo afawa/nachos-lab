@@ -178,6 +178,14 @@ class Machine {
 
     TranslationEntry *tlb;		// this pointer should be considered 
 					// "read-only" to Nachos kernel code
+    void tlbUpdate(int index);
+    void TLBswap(int virtAddr);
+    int findTLBswap();
+    int TLBhit_num;
+    int TLBfail_num;
+    int SimpleHash(int vpn){
+        return vpn>>1;
+    } //倒排页表hash函数
 
     TranslationEntry *pageTable;
     unsigned int pageTableSize;

@@ -62,9 +62,19 @@ Machine::Machine(bool debug)
     for (i = 0; i < MemorySize; i++)
       	mainMemory[i] = 0;
 #ifdef USE_TLB
+    printf("use TLB\n");
     tlb = new TranslationEntry[TLBSize];
-    for (i = 0; i < TLBSize; i++)
+    for (i = 0; i < TLBSize; i++){
 	tlb[i].valid = FALSE;
+    tlb[i].hit_time = 0;
+    }
+    TLBhit_num=0;
+    TLBfail_num=0;
+#ifdef TLB_LRU
+    printf("use LRU\n");
+#else
+    printf("use FIFO\n");
+#endif 
     pageTable = NULL;
 #else	// use linear page table
     tlb = NULL;
@@ -212,3 +222,73 @@ void Machine::WriteRegister(int num, int value)
 	registers[num] = value;
     }
 
+void Machine::tlbUpdate(int index){
+    for(int i=0;i<TLBSize;++i){
+        if(tlb[i].valid)
+            tlb[i].hit_time+=1;
+    }
+#ifdef TLB_LRU
+    tlb[index].hit_time=0; //击中
+#endif 
+#ifdef TLB_FIFO
+#endif 
+}
+
+int Machine::findTLBswap(){
+    //不同算法
+    int min_time=-1,index=0;
+    for(int i=0;i<TLBSize;++i){
+        if(!tlb[i].valid){
+            return i;
+        }
+        if(tlb[i].valid&&tlb[i].hit_time>min_time){
+            index=i;
+            min_time = tlb[i].hit_time;
+        }
+    }
+    return index;
+}
+
+void Machine::TLBswap(int virtAddr){
+    if(tlb == NULL){
+        printf("error no tlb\n");
+        return;
+    }else{
+        int vpn = (unsigned) virtAddr / PageSize;
+        int offset = (unsigned) virtAddr % PageSize;
+        //找到替换的tlb
+        int index = findTLBswap();
+        int pageNUM=memMa->findPage(vpn,currentThread);
+        if(pageNUM!=-1)
+            tlb[index].physicalPage = memMa->findPage(vpn,currentThread);
+        else{
+            //申请内存
+            int NUM=memMa->findFreePage(currentThread);
+            OpenFile *openfile = fileSystem->Open(currentThread->getVname());
+            if(openfile == NULL) ASSERT(false);
+            if (NUM==-1){
+                //如果物理内存满,则把当前tlb对应的物理内存换出到虚拟内存
+                openfile->WriteAt(&(machine->mainMemory[tlb[index].physicalPage*PageSize]),
+                        PageSize,tlb[index].virtualPage*PageSize);
+                //把需要的从虚拟内存拷贝进来,物理内存位置不变
+                memMa->allocate(vpn,currentThread,tlb[index].physicalPage);
+                openfile->ReadAt(&(machine->mainMemory[tlb[index].physicalPage*PageSize]),
+                        PageSize,vpn*PageSize);
+            }else{
+                memMa->allocate(vpn,currentThread,NUM);
+                openfile->ReadAt(&(machine->mainMemory[NUM*PageSize]),
+                        PageSize,vpn*PageSize);
+                tlb[index].physicalPage = NUM;
+            }
+            delete openfile;
+        }
+        tlb[index].virtualPage = vpn;
+        tlb[index].valid = true;
+        tlb[index].readOnly = false;
+        tlb[index].use=false;
+        tlb[index].dirty = false;
+        tlbUpdate(index);
+        tlb[index].hit_time = 0;
+        printf("tlb swap function,Thread: %s, virAddr:0x%x physicalPage:%d\n",currentThread->getName(),virtAddr,tlb[index].physicalPage);
+    }
+}

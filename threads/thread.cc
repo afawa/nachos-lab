@@ -35,6 +35,10 @@
 Thread::Thread(char* threadName)
 {
     name = threadName;
+    vname = (char*) malloc(strlen(threadName)+20);
+    char* prefix="virtual_memory_";
+    strcpy(vname,prefix);
+    strcat(vname,name);
     stackTop = NULL;
     stack = NULL;
     this->uid = getuid();
