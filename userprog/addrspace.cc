@@ -105,6 +105,7 @@ AddrSpace::AddrSpace(OpenFile *executable)
 #ifdef LAZY
     fileSystem->Create(currentThread->getVname(),size);
     OpenFile *openfile = fileSystem->Open(currentThread->getVname());
+    ASSERT(openfile != NULL);
     printf("use virtual memory\n");
     if(openfile==NULL) ASSERT(false);
     //写入虚拟内存

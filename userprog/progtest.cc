@@ -95,15 +95,21 @@ ConsoleTest (char *in, char *out)
 {
     char ch;
 
-    console = new Console(in, out, ReadAvail, WriteDone, 0);
+    //console = new Console(in, out, ReadAvail, WriteDone, 0);
     readAvail = new Semaphore("read avail", 0);
     writeDone = new Semaphore("write done", 0);
-    
-    for (;;) {
-	readAvail->P();		// wait for character to arrive
-	ch = console->GetChar();
-	console->PutChar(ch);	// echo it!
-	writeDone->P() ;        // wait for write to finish
-	if (ch == 'q') return;  // if q, quit
+    SynchConsole *synchconsole = new SynchConsole(in,out,readAvail,writeDone,ReadAvail,WriteDone,0);
+    for(;;){
+        ch = synchconsole->GetChar();
+        synchconsole->PutChar(ch);
+        if(ch=='q')
+            return;
     }
+    //for (;;) {
+	//readAvail->P();		// wait for character to arrive
+	//ch = console->GetChar();
+	//console->PutChar(ch);	// echo it!
+	//writeDone->P() ;        // wait for write to finish
+	//if (ch == 'q') return;  // if q, quit
+    //}
 }

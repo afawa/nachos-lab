@@ -25,6 +25,8 @@
 #include "filehdr.h"
 #include "directory.h"
 
+#define NumDirEntries 		10
+#define DirectoryFileSize 	(sizeof(DirectoryEntry) * NumDirEntries)
 //----------------------------------------------------------------------
 // Directory::Directory
 // 	Initialize a directory; initially, the directory is completely
@@ -105,6 +107,13 @@ Directory::FindIndex(char *name)
 //	"name" -- the file name to look up
 //----------------------------------------------------------------------
 
+bool Directory::isEmpty(){
+    for(int i=0;i<tableSize;++i){
+        if(table[i].inUse)
+            return false;
+    }
+    return true;
+}
 int
 Directory::Find(char *name)
 {
@@ -113,6 +122,39 @@ Directory::Find(char *name)
     if (i != -1)
 	return table[i].sector;
     return -1;
+}
+
+int Directory::getType(char* name){
+    int i = FindIndex(name);
+    if(i!=-1){
+        return table[i].type;
+    }
+    printf("can't find\n");
+    ASSERT(i!=-1);
+    return -1;
+}
+
+int Directory::FindDir(char *name){
+    int sector = 1;
+    OpenFile *dir_file = new OpenFile(sector);
+    Directory *dir = new Directory(NumDirEntries);
+    dir->FetchFrom(dir_file);
+    int str_pos=0;
+    int sub_str_pos=0;
+    char sub_str[10];
+    while(str_pos<strlen(name)){
+        sub_str[sub_str_pos++]=name[str_pos++];
+        if(name[str_pos]=='/'){
+            sub_str[sub_str_pos]=0;
+            sector = dir->Find(sub_str);
+            dir_file = new OpenFile(sector);
+            dir = new Directory(NumDirEntries);
+            dir->FetchFrom(dir_file);
+            str_pos++;
+            sub_str_pos=0;
+        }
+    }
+    return sector;
 }
 
 //----------------------------------------------------------------------
@@ -127,18 +169,35 @@ Directory::Find(char *name)
 //----------------------------------------------------------------------
 
 bool
-Directory::Add(char *name, int newSector)
+Directory::Add(char *name, int newSector,int type)
 { 
-    if (FindIndex(name) != -1)
-	return FALSE;
-
-    for (int i = 0; i < tableSize; i++)
-        if (!table[i].inUse) {
-            table[i].inUse = TRUE;
-            strncpy(table[i].name, name, FileNameMaxLen); 
+    char file_name[FileNameMaxLen+1];
+    int pos=-1;
+    for(int i=strlen(name)-1;i>=0;--i){
+        if(name[i]=='/'){
+            pos=i+1;
+            break;
+        }
+    }
+    if(pos==-1)
+        pos=0;
+    int j=0;
+    for(int i=pos;i<strlen(name);++i){
+        file_name[j++]=name[i];
+    }
+    file_name[j]=0;
+    if(FindIndex(file_name)!=-1)
+        return false;
+    for(int i=0;i<tableSize;++i){
+        if(!table[i].inUse){
+            table[i].inUse=true;
+            strncpy(table[i].path,name,20);
+            strncpy(table[i].name,file_name,FileNameMaxLen);
             table[i].sector = newSector;
-        return TRUE;
-	}
+            table[i].type = type;
+            return true;
+        }
+    }
     return FALSE;	// no space.  Fix when we have extensible files.
 }
 

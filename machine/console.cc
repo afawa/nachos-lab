@@ -148,3 +148,31 @@ Console::PutChar(char ch)
     interrupt->Schedule(ConsoleWriteDone, (int)this, ConsoleTime,
 					ConsoleWriteInt);
 }
+
+
+SynchConsole::SynchConsole(char *readFile,char *writeFile,Semaphore *readAvail,Semaphore *writeDone,
+        VoidFunctionPtr ReadAvail,VoidFunctionPtr WriteDone, int callArg){
+    lock = new Lock("console");
+    console = new Console(readFile,writeFile,ReadAvail,WriteDone,callArg);
+    this->readAvail=readAvail;
+    this->writeDone=writeDone;
+}
+
+SynchConsole::~SynchConsole(){
+    delete lock;
+    delete console;
+}
+void SynchConsole::PutChar(char ch){
+    lock->Acquire();
+    console->PutChar(ch);
+    writeDone->P();
+    lock->Release();
+}
+char SynchConsole::GetChar(){
+    lock->Acquire();
+    readAvail->P();
+    char ch=console->GetChar();
+    lock->Release();
+    return ch;
+}
+

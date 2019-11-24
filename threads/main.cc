@@ -62,7 +62,7 @@ extern int testnum;
 extern void ThreadTest(void), Copy(char *unixFile, char *nachosFile);
 extern void Print(char *file), PerformanceTest(void);
 extern void StartProcess(char *file), ConsoleTest(char *in, char *out);
-extern void MailTest(int networkID);
+extern void MailTest(int networkID),Test1(void),Test2(void);
 
 //----------------------------------------------------------------------
 // main
@@ -88,20 +88,20 @@ main(int argc, char **argv)
     DEBUG('t', "Entering main");
     (void) Initialize(argc, argv);
 #ifdef THREADS
-    for (argc--, argv++; argc > 0; argc -= argCount, argv += argCount) {
-      argCount = 1;
-      switch (argv[0][1]) {
-      case 'q':
-        testnum = atoi(argv[1]);
-        argCount++;
-        break;
-      default:
-        testnum = 1;
-        break;
-      }
-    }
+    //for (argc--, argv++; argc > 0; argc -= argCount, argv += argCount) {
+    //  argCount = 1;
+    //  switch (argv[0][1]) {
+    //  case 'q':
+    //    testnum = atoi(argv[1]);
+    //    argCount++;
+    //    break;
+    //  default:
+    //    testnum = 1;
+    //    break;
+    //  }
+    //}
 
-    ThreadTest();
+    //ThreadTest();
 #endif
 
     for (argc--, argv++; argc > 0; argc -= argCount, argv += argCount) {
@@ -145,7 +145,14 @@ main(int argc, char **argv)
             fileSystem->Print();
 	} else if (!strcmp(*argv, "-t")) {	// performance test
             PerformanceTest();
-	}
+	}else if (!strcmp(*argv,"-cd")){
+        fileSystem->Create(*(argv+1),-1);
+        argCount=2;
+    }else if(!strcmp(*argv,"-pt1")){
+        Test1();
+    }else if(!strcmp(*argv,"-pt2")){
+        Test2();
+    }
 #endif // FILESYS
 #ifdef NETWORK
         if (!strcmp(*argv, "-o")) {

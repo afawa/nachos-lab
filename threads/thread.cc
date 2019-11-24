@@ -239,7 +239,7 @@ Thread::Sleep ()
 	interrupt->Idle();	// no one to run, wait for an interrupt
 
     //printf("1 ");
-    printf("%s\n",nextThread->getName());
+    //printf("%s\n",nextThread->getName());
     scheduler->Run(nextThread); // returns when we've been signalled
 }
 

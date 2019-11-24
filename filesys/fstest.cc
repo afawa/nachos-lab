@@ -27,6 +27,10 @@
 // Copy
 // 	Copy the contents of the UNIX file "from" to the Nachos file "to"
 //----------------------------------------------------------------------
+//
+void Create_dir(char *name){
+    fileSystem->Create(name,-1);
+}
 
 void
 Copy(char *from, char *to)
@@ -111,7 +115,7 @@ Print(char *name)
 #define FileName 	"TestFile"
 #define Contents 	"1234567890"
 #define ContentSize 	strlen(Contents)
-#define FileSize 	((int)(ContentSize * 5000))
+#define FileSize 	((int)(ContentSize * 300))
 
 static void 
 FileWrite()
@@ -121,7 +125,7 @@ FileWrite()
 
     printf("Sequential write of %d byte file, in %d byte chunks\n", 
 	FileSize, ContentSize);
-    if (!fileSystem->Create(FileName, 0)) {
+    if (!fileSystem->Create(FileName, 10)) {
       printf("Perf test: can't create %s\n", FileName);
       return;
     }
@@ -144,29 +148,31 @@ FileWrite()
 static void 
 FileRead()
 {
-    OpenFile *openFile;    
+    OpenFile *openFile,*openFile1;    
     char *buffer = new char[ContentSize];
     int i, numBytes;
 
     printf("Sequential read of %d byte file, in %d byte chunks\n", 
 	FileSize, ContentSize);
 
-    if ((openFile = fileSystem->Open(FileName)) == NULL) {
+    if ((openFile1 = fileSystem->Open(FileName)) == NULL) {
 	printf("Perf test: unable to open file %s\n", FileName);
 	delete [] buffer;
 	return;
     }
     for (i = 0; i < FileSize; i += ContentSize) {
+        openFile = fileSystem->Open(FileName);
         numBytes = openFile->Read(buffer, ContentSize);
+        delete openFile;
 	if ((numBytes < 10) || strncmp(buffer, Contents, ContentSize)) {
 	    printf("Perf test: unable to read %s\n", FileName);
-	    delete openFile;
+	    delete openFile1;
 	    delete [] buffer;
 	    return;
 	}
     }
     delete [] buffer;
-    delete openFile;	// close file
+    delete openFile1;	// close file
 }
 
 void
@@ -182,4 +188,36 @@ PerformanceTest()
     }
     stats->Print();
 }
+void readPerform(int which){
+    FileRead();
+}
 
+//void PerformanceTest(){
+//    FileWrite();
+//    Thread * thread1 = new Thread("reader1");
+//    thread1->Fork(readPerform,1);
+//    FileRead();
+//    printf("%s remove\n",currentThread->getName());
+//    fileSystem->Remove(FileName);
+//}
+//void PerformanceTest(){
+//    Thread * thread1 = new Thread("reader1");
+//    thread1->Fork(readPerform,1);
+//    FileWrite();
+//    FileRead();
+//    printf("%s remove\n",currentThread->getName());
+//    fileSystem->Remove(FileName);
+//}
+
+void Test1(){
+    char input_str[SectorSize+1];
+    printf("input: ");
+    scanf("%s",input_str);
+    fileSystem->WritePipe(input_str,strlen(input_str));
+}
+void Test2(){
+    char data[SectorSize+1];
+    int length = fileSystem->ReadPipe(data);
+    data[length]=0;
+    printf("%s\n",data);
+}

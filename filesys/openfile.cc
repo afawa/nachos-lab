@@ -31,6 +31,9 @@ OpenFile::OpenFile(int sector)
 { 
     hdr = new FileHeader;
     hdr->FetchFrom(sector);
+    this->sector = sector;
+    synchDisk->numVisitors[sector]++;
+    //hdr->Print();
     seekPosition = 0;
 }
 
@@ -41,6 +44,7 @@ OpenFile::OpenFile(int sector)
 
 OpenFile::~OpenFile()
 {
+    synchDisk->numVisitors[sector]--;
     delete hdr;
 }
 
@@ -74,17 +78,23 @@ OpenFile::Seek(int position)
 int
 OpenFile::Read(char *into, int numBytes)
 {
-   int result = ReadAt(into, numBytes, seekPosition);
-   seekPosition += result;
+    synchDisk->PlusReader(sector);
+    int result = ReadAt(into, numBytes, seekPosition);
+    currentThread->Yield();
+    seekPosition += result;
+    synchDisk->MinusReader(sector);
    return result;
 }
 
 int
 OpenFile::Write(char *into, int numBytes)
 {
-   int result = WriteAt(into, numBytes, seekPosition);
-   seekPosition += result;
-   return result;
+    synchDisk->BeginWrite(sector);
+    int result = WriteAt(into, numBytes, seekPosition);
+    currentThread->Yield();
+    seekPosition += result;
+    synchDisk->EndWrite(sector);
+    return result;
 }
 
 //----------------------------------------------------------------------
@@ -147,14 +157,26 @@ int
 OpenFile::WriteAt(char *from, int numBytes, int position)
 {
     int fileLength = hdr->FileLength();
+    //printf("numBytes:%d position:%d fileLength:%d\n",numBytes,position,fileLength);
     int i, firstSector, lastSector, numSectors;
     bool firstAligned, lastAligned;
     char *buf;
+    if((position + numBytes)>fileLength){
+        OpenFile *freeMapFile = new OpenFile(0);
+        BitMap *freeMap = new BitMap(NumSectors);
+        freeMap->FetchFrom(freeMapFile);
+        hdr->Extend(freeMap,position+numBytes-fileLength);
+        hdr->WriteBack(sector);
+        freeMap->WriteBack(freeMapFile);
+        delete freeMapFile;
+    }
+    fileLength = hdr->FileLength();
+    //printf("\tnumBytes:%d position:%d fileLength:%d\n",numBytes,position,fileLength);
 
     if ((numBytes <= 0) || (position >= fileLength))
 	return 0;				// check request
-    if ((position + numBytes) > fileLength)
-	numBytes = fileLength - position;
+    //if ((position + numBytes) > fileLength)
+	//numBytes = fileLength - position;
     DEBUG('f', "Writing %d bytes at %d, from file of length %d.\n", 	
 			numBytes, position, fileLength);
 
