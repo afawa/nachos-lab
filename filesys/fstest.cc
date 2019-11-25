@@ -115,7 +115,7 @@ Print(char *name)
 #define FileName 	"TestFile"
 #define Contents 	"1234567890"
 #define ContentSize 	strlen(Contents)
-#define FileSize 	((int)(ContentSize * 300))
+#define FileSize 	((int)(ContentSize * 3))
 
 static void 
 FileWrite()
@@ -175,19 +175,19 @@ FileRead()
     delete openFile1;	// close file
 }
 
-void
-PerformanceTest()
-{
-    printf("Starting file system performance test:\n");
-    stats->Print();
-    FileWrite();
-    FileRead();
-    if (!fileSystem->Remove(FileName)) {
-      printf("Perf test: unable to remove %s\n", FileName);
-      return;
-    }
-    stats->Print();
-}
+//void
+//PerformanceTest()
+//{
+//    printf("Starting file system performance test:\n");
+//    stats->Print();
+//    FileWrite();
+//    FileRead();
+//    if (!fileSystem->Remove(FileName)) {
+//      printf("Perf test: unable to remove %s\n", FileName);
+//      return;
+//    }
+//    stats->Print();
+//}
 void readPerform(int which){
     FileRead();
 }
@@ -200,14 +200,14 @@ void readPerform(int which){
 //    printf("%s remove\n",currentThread->getName());
 //    fileSystem->Remove(FileName);
 //}
-//void PerformanceTest(){
-//    Thread * thread1 = new Thread("reader1");
-//    thread1->Fork(readPerform,1);
-//    FileWrite();
-//    FileRead();
-//    printf("%s remove\n",currentThread->getName());
-//    fileSystem->Remove(FileName);
-//}
+void PerformanceTest(){
+    Thread * thread1 = new Thread("reader1");
+    thread1->Fork(readPerform,1);
+    FileWrite();
+    FileRead();
+    printf("%s remove\n",currentThread->getName());
+    fileSystem->Remove(FileName);
+}
 
 void Test1(){
     char input_str[SectorSize+1];
