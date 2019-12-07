@@ -117,6 +117,8 @@ class Thread {
     static Thread* createThread_priority(char* debugName,int priority);
     static int checkTidNum();
 
+    char* filename;
+
   private:
     // some of the private data for this class is listed above
     

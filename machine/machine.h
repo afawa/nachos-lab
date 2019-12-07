@@ -186,6 +186,7 @@ class Machine {
     int SimpleHash(int vpn){
         return vpn>>1;
     } //倒排页表hash函数
+    void PC_increase();
 
     TranslationEntry *pageTable;
     unsigned int pageTableSize;

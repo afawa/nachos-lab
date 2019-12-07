@@ -266,3 +266,16 @@ void AddrSpace::RestoreState()
    // machine->pageTable = pageTable;
     machine->pageTableSize = numPages;
 }
+
+void AddrSpace::CpyAddrSpace(AddrSpace* space){
+    numPages=space->numPages;
+    pageTable = new TranslationEntry[numPages];
+    for(int i=0;i<numPages;++i){
+        pageTable[i].virtualPage=(space->pageTable)[i].virtualPage;
+        pageTable[i].physicalPage=(space->pageTable)[i].physicalPage;
+        pageTable[i].valid=(space->pageTable)[i].valid;
+        pageTable[i].use=(space->pageTable)[i].use;
+        pageTable[i].dirty=(space->pageTable)[i].dirty;
+        pageTable[i].readOnly=(space->pageTable)[i].readOnly;
+    }
+}

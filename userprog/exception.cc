@@ -48,6 +48,47 @@
 //	are in machine.h.
 //----------------------------------------------------------------------
 
+void exec(int pointer){
+    char name[20];
+    int pos=0;
+    int c;
+    while(1){
+        machine->ReadMem(pointer+pos,1,&c);
+        if(c==0){
+            name[pos]=0;
+            break;
+        }
+        name[pos++]=(char)c;
+    }
+    printf("name:%s\n",name);
+    OpenFile *openfile = fileSystem->Open(name);
+    AddrSpace *space = new AddrSpace(openfile);
+    currentThread->space = space;
+    delete openfile;
+    space->InitRegisters();
+    space->RestoreState();
+    machine->Run();
+}
+
+class Temp{
+    public:
+    AddrSpace *space;
+    int pointer;
+    int Next_PC;
+};
+
+void fork(int arg){
+    Temp* temp=(Temp*) arg;
+    AddrSpace* space = temp->space;
+    currentThread->space=space;
+    int PC = temp->pointer;
+    space->InitRegisters();
+    space->RestoreState();
+    machine->WriteRegister(PCReg,PC);
+    machine->WriteRegister(NextPCReg,PC+4);
+    machine->Run();
+}
+
 void
 ExceptionHandler(ExceptionType which)
 {
@@ -88,7 +129,136 @@ ExceptionHandler(ExceptionType which)
         machine->pageTable[ppn].use=false;
         machine->pageTable[ppn].dirty = false;
 #endif 
-    } 
+    } else if((which == SyscallException) && (type==SC_Create)){
+        printf("Create\n");
+        //create
+        int name_point = machine->ReadRegister(4);
+        char name[20];
+        int pos=0;
+        int c;
+        while(1){
+            machine->ReadMem(name_point+pos,1,&c);
+            if(c==0){
+                name[pos]=0;
+                break;
+            }
+            name[pos++]=(char)c;
+        }
+        pos=0;
+        while(1){
+            machine->ReadMem(name_point+pos,1,&c);
+            if(c==0){
+                name[pos]=0;
+                break;
+            }
+            name[pos++]=(char)c;
+        }
+        printf("%s\n",name);
+        fileSystem->Create(name,128);
+        //PC increase
+        machine->PC_increase();
+    }else if((which == SyscallException) && (type==SC_Open)){
+        //open
+        printf("Open\n");
+        int name_point = machine->ReadRegister(4);
+        char name[20];
+        int pos=0;
+        int c;
+        while(1){
+            machine->ReadMem(name_point+pos,1,&c);
+            if(c==0){
+                name[pos]=0;
+                break;
+            }
+            name[pos++]=(char)c;
+        }
+        OpenFile* openfile = fileSystem->Open(name);
+        machine->WriteRegister(2,int(openfile));//返回值
+        machine->PC_increase();
+    }else if((which==SyscallException) && (type==SC_Close)){
+        //close
+        printf("Close\n");
+        OpenFile* openfile = machine->ReadRegister(4);
+        delete openfile;
+        machine->PC_increase();
+    }else if((which==SyscallException) && (type==SC_Write)){
+        //write
+        printf("Write\n");
+        int pointer = machine->ReadRegister(4);
+        int length = machine->ReadRegister(5);
+        OpenFile* openfile = machine->ReadRegister(6);
+        char buffer[length];
+        int c;
+        for(int i=0;i<length;++i){
+            machine->ReadMem(pointer+i,1,&c);
+            buffer[i]=(char)c;
+        }
+        openfile->Write(buffer,length);
+        machine->PC_increase();
+    }else if((which==SyscallException)&&(type==SC_Read)){
+        //read
+        printf("Read\n");
+        int pointer = machine->ReadRegister(4);
+        int length = machine->ReadRegister(5);
+        OpenFile* openfile = machine->ReadRegister(6);
+        char buffer[length];
+        int real_length = openfile->Read(buffer,length);
+        printf("read length: %d\n",real_length);
+        for(int i=0;i<real_length;++i){
+            machine->WriteMem(pointer+i,1,buffer[i]);
+        }
+        machine->WriteRegister(2,real_length);
+        machine->PC_increase();
+    }else if((which==SyscallException)&&(type==SC_Exec)){
+        //exec
+        printf("Exec\n");
+        int pointer = machine->ReadRegister(4);
+        char name[20];
+        int pos=0;
+        int c;
+        while(1){
+            machine->ReadMem(pointer+pos,1,&c);
+            if(c==0){
+                name[pos]=0;
+                break;
+            }
+            name[pos++]=(char)c;
+        }
+        Thread* t=new Thread("Thread1");
+        t->Fork(exec,pointer);
+        machine->WriteRegister(2,t->getTid());
+        machine->PC_increase();
+    }else if((which==SyscallException)&&(type==SC_Fork)){
+        //fork
+        printf("%s fork\n",currentThread->getName());
+        int func_pointer = machine->ReadRegister(4);
+        OpenFile *openfile=fileSystem->Open(currentThread->filename);
+        AddrSpace *space = new AddrSpace(openfile);
+        space->CpyAddrSpace(currentThread->space);
+        Temp* temp=new Temp;
+        temp->space = space;
+        temp->pointer=func_pointer;
+        temp->Next_PC = machine->registers[PCReg]+4;
+        Thread* t=new Thread("Thread1");
+        t->Fork(fork,int(temp));
+        machine->PC_increase();
+    }else if((which==SyscallException)&&(type==SC_Yield)){
+        printf("Yield\n");
+        machine->PC_increase();
+        currentThread->Yield();
+    }else if((which==SyscallException)&&(type==SC_Join)){
+        //join
+        printf("join\n");
+        int tid=machine->ReadRegister(4);
+        while(tid_alloc[tid])
+            currentThread->Yield();
+        machine->PC_increase();
+    }else if((which==SyscallException)&&(type==SC_Exit)){
+        printf("Thread %s Exit\n",currentThread->getName());
+        int status = machine->ReadRegister(4);
+        machine->PC_increase();
+        currentThread->Finish();
+    }
     else {
 	printf("Unexpected user mode exception %d %d\n", which, type);
 	ASSERT(FALSE);

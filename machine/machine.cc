@@ -264,23 +264,25 @@ void Machine::TLBswap(int virtAddr){
         else{
             //申请内存
             int NUM=memMa->findFreePage(currentThread);
-            OpenFile *openfile = fileSystem->Open(currentThread->getVname());
-            if(openfile == NULL) ASSERT(false);
-            if (NUM==-1){
-                //如果物理内存满,则把当前tlb对应的物理内存换出到虚拟内存
-                openfile->WriteAt(&(machine->mainMemory[tlb[index].physicalPage*PageSize]),
-                        PageSize,tlb[index].virtualPage*PageSize);
-                //把需要的从虚拟内存拷贝进来,物理内存位置不变
-                memMa->allocate(vpn,currentThread,tlb[index].physicalPage);
-                openfile->ReadAt(&(machine->mainMemory[tlb[index].physicalPage*PageSize]),
-                        PageSize,vpn*PageSize);
-            }else{
-                memMa->allocate(vpn,currentThread,NUM);
-                openfile->ReadAt(&(machine->mainMemory[NUM*PageSize]),
-                        PageSize,vpn*PageSize);
-                tlb[index].physicalPage = NUM;
-            }
-            delete openfile;
+            memMa->allocate(vpn,currentThread,NUM);
+            tlb[index].physicalPage=NUM;
+            //OpenFile *openfile = fileSystem->Open(currentThread->getVname());
+            //if(openfile == NULL) ASSERT(false);
+            //if (NUM==-1){
+            //    //如果物理内存满,则把当前tlb对应的物理内存换出到虚拟内存
+            //    openfile->WriteAt(&(machine->mainMemory[tlb[index].physicalPage*PageSize]),
+            //            PageSize,tlb[index].virtualPage*PageSize);
+            //    //把需要的从虚拟内存拷贝进来,物理内存位置不变
+            //    memMa->allocate(vpn,currentThread,tlb[index].physicalPage);
+            //    openfile->ReadAt(&(machine->mainMemory[tlb[index].physicalPage*PageSize]),
+            //            PageSize,vpn*PageSize);
+            //}else{
+            //    memMa->allocate(vpn,currentThread,NUM);
+            //    openfile->ReadAt(&(machine->mainMemory[NUM*PageSize]),
+            //            PageSize,vpn*PageSize);
+            //    tlb[index].physicalPage = NUM;
+            //}
+            //delete openfile;
         }
         tlb[index].virtualPage = vpn;
         tlb[index].valid = true;
@@ -291,4 +293,10 @@ void Machine::TLBswap(int virtAddr){
         tlb[index].hit_time = 0;
         printf("tlb swap function,Thread: %s, virAddr:0x%x physicalPage:%d\n",currentThread->getName(),virtAddr,tlb[index].physicalPage);
     }
+}
+
+void Machine::PC_increase(){
+    WriteRegister(PrevPCReg,registers[PCReg]);
+    WriteRegister(PCReg,registers[PCReg]+4);
+    WriteRegister(NextPCReg,registers[NextPCReg]+4);
 }

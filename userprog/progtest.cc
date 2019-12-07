@@ -46,6 +46,7 @@ StartProcess(char *filename)
 {
     OpenFile *executable = fileSystem->Open(filename);
     AddrSpace *space;
+    currentThread->filename=filename;
 
 #ifdef MUL_THREAD
     Thread* t = Thread::createThread("Thread1");
